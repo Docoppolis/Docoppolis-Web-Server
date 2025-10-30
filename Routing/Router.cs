@@ -35,6 +35,8 @@ namespace Docoppolis.WebServer.Routing
 
         private readonly Dictionary<string, ExtensionInfo> _extMap;
 
+        private static Dictionary<string, CacheEntry> cache;
+
         public List<Route> routes = new List<Route>();
 
         public Router()
@@ -51,6 +53,8 @@ namespace Docoppolis.WebServer.Routing
                 ["html"] = new() { Loader = PageLoader, ContentType = "text/html", Subfolder = "Pages" },
                 [""] = new() { Loader = PageLoader, ContentType = "text/html", Subfolder = "Pages" }, // default
             };
+
+            cache = new Dictionary<string, CacheEntry>();
         }
 
         /// <summary>
@@ -156,7 +160,27 @@ namespace Docoppolis.WebServer.Routing
                 return ResponsePacket.FromError(isPage ? ServerError.PageNotFound : ServerError.FileNotFound);
             }
 
+
+            Console.WriteLine(cache.ContainsKey(full) ? $"[CACHE] Hit: {full}" : $"[CACHE] Miss: {full}");
+            if (cache.ContainsKey(full))
+            {
+                var entry = cache[full];
+                var lastModified = File.GetLastWriteTime(full);
+                if (entry.lastModified == lastModified)
+                {
+                    return new ResponsePacket
+                    {
+                        Data = cache[full].data,
+                        ContentType = cache[full].contentType,
+                        StatusCode = (int)HttpStatusCode.OK
+                    };
+                }
+            }
+            Console.WriteLine(cache.ContainsKey(full) ? $"[CACHE] Hit: {full}" : $"[CACHE] Miss: {full}");
+
             byte[] bytes = info.Loader(full);
+            CacheEntry cacheEntry = new CacheEntry(bytes, File.GetLastWriteTime(full), Path.GetExtension(clean));
+            cache.Add(full, cacheEntry);
             return new ResponsePacket
             {
                 Data = bytes,
@@ -301,6 +325,20 @@ namespace Docoppolis.WebServer.Routing
             }
 
             return ret;
+        }
+    }
+
+    public class CacheEntry
+    {
+        public byte[] data;
+        public DateTime lastModified;
+        public string contentType;
+
+        public CacheEntry(byte[] data, DateTime lastModified, string contentType)
+        {
+            this.data = data;
+            this.lastModified = lastModified;
+            this.contentType = contentType;
         }
     }
 }
