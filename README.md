@@ -167,5 +167,5 @@ You are free to clone, modify, and experiment with it for personal learning.
 
 **Author:** John Parrott  
 **Purpose:** Portfolio / educational project demonstrating backend fundamentals  
-**LinkedIn:** [linkedin.com/in/john-parrott](https://linkedin.com/in/john-parrott)  
-**GitHub:** [github.com/johnparrott](https://github.com/johnparrott)
+**LinkedIn:** [linkedin.com/in/john-parrott](https://www.linkedin.com/in/john-parrott-6b88ba27a/)
+**GitHub:** [github.com/docoppolis](https://github.com/Docoppolis)
