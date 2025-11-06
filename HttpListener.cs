@@ -20,7 +20,7 @@ namespace Docoppolis.WebServer
 
         public static Action<Exception>? onError;
         public static string publicIP = "localhost:8080"; 
-        public static readonly int expirationSeconds = 10; // default session expiration time: 5 minutes
+        public static int expirationSeconds = 10; // default session expiration time: 5 minutes
 
         // The HttpListener instance
         private static HttpListener listener;

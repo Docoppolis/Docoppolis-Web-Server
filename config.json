@@ -1,0 +1,7 @@
+{
+  "port": 8080,
+  "host": "localhost",
+  "maxConnections": 20,
+  "sessionExpirationSeconds": 600,
+  "websitePath": "./Website"
+}
