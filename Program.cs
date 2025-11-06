@@ -15,6 +15,24 @@ namespace ConsoleWebServer
     {
         static void Main(string[] args)
         {
+            
+            // Load JSON config
+            var config = Docoppolis.WebServer.Config.ConfigLoader.Load();
+
+            // Apply config to server
+            Server.publicIP = $"{config.Host}:{config.Port}";
+            typeof(Server).GetField("maxSimultaneousConnections", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                ?.SetValue(null, config.MaxSimultaneousConnections);
+            typeof(Server)
+                .GetField("expirationSeconds", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                ?.SetValue(null, config.SessionExpirationSeconds);
+
+
+            // Log loaded settings
+            Console.WriteLine($"[INFO] Starting server at http://{config.Host}:{config.Port}/");
+            Console.WriteLine($"[INFO] Website path: {config.WebsitePath}");
+
+
             Server.onError = ErrorHandler;
 
             // Anonymous GET login page:
