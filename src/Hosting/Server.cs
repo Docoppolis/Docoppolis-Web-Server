@@ -1,3 +1,7 @@
+// NOTE: Server.cs currently handles multiple concerns (listener setup,
+// request loop, session attachment, routing delegation, response writing, post-processing). 
+// TODO: Once the architecture stabilizes, consider extracting these responsibilities into dedicated classes to improve clarity.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,24 +20,29 @@ namespace Docoppolis.WebServer.Hosting;
 
 public static class Server
 {
-    private static readonly Router RouterInstance = new();
-    private static readonly SessionManager SessionManager = new();
+    private static readonly Router RouterInstance = new(); // Singleton router instance
+    private static readonly SessionManager SessionManager = new(); // Singleton session manager instance
 
-    private static HttpListener? listener;
+    private static HttpListener? listener; // HTTP listener instance
 
-    private static int maxSimultaneousConnections = 20;
-    private static Semaphore connectionSemaphore = new(maxSimultaneousConnections, maxSimultaneousConnections);
+    private static int maxSimultaneousConnections = 20; // Default max simultaneous connections (can be configured)
+    private static Semaphore connectionSemaphore = new(maxSimultaneousConnections, maxSimultaneousConnections); // Semaphore to limit concurrent connections
 
-    public static Action<Exception>? OnError { get; set; }
+    public static Action<Exception>? OnError { get; set; } // Error handling delegate
 
-    public static string PublicAddress { get; set; } = "localhost:8080";
+    public static string PublicAddress { get; set; } = "localhost:8080"; // Default public address (can be configured)
 
-    public static int SessionExpirationSeconds { get; set; } = 10;
+    public static int SessionExpirationSeconds { get; set; } = 100; // Default session expiration time in seconds (can be configured)
 
-    public static Router Router => RouterInstance;
+    public static Router Router => RouterInstance; // Exposes the router instance. Allows access to RouterInstance outside the Server class.
 
-    public static string ValidationTokenName { get; } = "__csrf__";
+    public static string ValidationTokenName { get; } = "__csrf__"; // CSRF validation token name. Must be placed in HTML forms to perform validation
 
+    /// <summary>
+    /// Configures the server with specified max connections and session expiration time.
+    /// </summary>
+    /// <param name="maxConnections"></param>
+    /// <param name="sessionExpirationSeconds"></param>
     public static void Configure(int maxConnections, int sessionExpirationSeconds)
     {
         maxSimultaneousConnections = maxConnections;
@@ -41,6 +50,10 @@ public static class Server
         connectionSemaphore = new Semaphore(maxSimultaneousConnections, maxSimultaneousConnections);
     }
 
+    /// <summary>
+    /// Starts the server with the specified website path.
+    /// </summary>
+    /// <param name="websitePath"></param>
     public static void Start(string websitePath)
     {
         var localHostIPs = GetLocalHostIPs();
@@ -49,19 +62,35 @@ public static class Server
         Start(httpListener);
     }
 
+    /// <summary>
+    /// Gets the external IP address of the server.
+    /// TODO: This retrieves the machine's WAN/public IP address.
+    /// currently unused because the server only binds to localhost and LAN IPs.
+    /// Keep for potential future remote-hosting support.
+    /// </summary>
+    /// <returns></returns>
     public static string GetExternalIP()
     {
-        string externalIP = new WebClient().DownloadString("http://checkip.dyndns.org/");
-        externalIP = new Regex(@"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}").Matches(externalIP)[0].ToString();
+        string externalIP = new WebClient().DownloadString("http://checkip.dyndns.org/"); // Retrieve external IP from web service
+        externalIP = new Regex(@"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}").Matches(externalIP)[0].ToString(); // Extract IP address using regex
         return externalIP;
     }
 
+    /// <summary>
+    /// Logs the request details.
+    /// </summary>
+    /// <param name="request"></param>
     public static void Log(HttpListenerRequest request)
     {
         string path = request.Url?.AbsolutePath ?? "/";
         Console.WriteLine($"{request.RemoteEndPoint} {request.HttpMethod} {path}");
     }
 
+    /// <summary>
+    /// Maps server errors to specific error page paths.
+    /// </summary>
+    /// <param name="error"></param>
+    /// <returns></returns>
     public static string? ErrorHandler(ServerError error)
     {
         return error switch
@@ -76,16 +105,33 @@ public static class Server
         };
     }
 
+    /// <summary>
+    /// Adds a route to the server's router with the specified HTTP verb, path, and handler. Defaults to AnonymousRouteHandler.
+    /// </summary>
+    /// <param name="verb"></param>
+    /// <param name="path"></param>
+    /// <param name="handler"></param>
     public static void AddRoute(string verb, string path, Func<HttpListenerRequest, Session, Dictionary<string, string>, ResponsePacket> handler)
     {
         RouterInstance.AddRoute(verb, path, handler);
     }
 
+    /// <summary>
+    /// Adds a route to the server's router with the specified HTTP verb, path, and custom RouteHandler. Overload for addtional handler types.
+    /// </summary>
+    /// <param name="verb"></param>
+    /// <param name="path"></param>
+    /// <param name="handler"></param>
     public static void AddRoute(string verb, string path, RouteHandler handler)
     {
         RouterInstance.AddRoute(verb, path, handler);
     }
 
+    /// <summary>
+    /// Generates a redirect ResponsePacket to the specified relative path.
+    /// </summary>
+    /// <param name="relativePath"></param>
+    /// <returns>A ResponsePacket with redirect information.</returns>
     public static ResponsePacket Redirect(string relativePath)
     {
         string target = $"http://{PublicAddress}{relativePath}";
@@ -99,6 +145,10 @@ public static class Server
         };
     }
 
+    /// <summary>
+    /// Gets the list of local host IP addresses.
+    /// </summary>
+    /// <returns></returns>
     private static List<IPAddress> GetLocalHostIPs()
     {
         IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
@@ -107,10 +157,15 @@ public static class Server
             .ToList();
     }
 
+    /// <summary>
+    /// Initializes the HTTP listener with the specified local host IP addresses.
+    /// </summary>
+    /// <param name="localhostIPs"></param>
+    /// <returns>Returns the initialized HttpListener.</returns>
     private static HttpListener InitializeListener(IEnumerable<IPAddress> localhostIPs)
     {
         listener = new HttpListener();
-        listener.Prefixes.Add("http://localhost:8080/");
+        listener.Prefixes.Add("http://localhost:8080/"); // Default localhost binding
 
         foreach (var ip in localhostIPs)
         {
@@ -121,21 +176,34 @@ public static class Server
         return listener;
     }
 
+    /// <summary>
+    /// Starts the HTTP listener and begins processing incoming requests.
+    /// </summary>
+    /// <param name="httpListener"></param>
     private static void Start(HttpListener httpListener)
     {
         httpListener.Start();
-        Task.Run(() => RunServer(httpListener));
+        Task.Run(() => RunServer(httpListener)); // Run the server loop in a separate task
     }
 
-    private static void RunServer(HttpListener httpListener)
+    /// <summary>
+    /// Runs the server loop to handle incoming requests.
+    /// </summary>
+    /// <param name="httpListener"></param>
+    private static async Task RunServer(HttpListener httpListener)
     {
+        // Continuously listen for incoming connections
         while (true)
         {
-            connectionSemaphore.WaitOne();
-            StartConnectionListener(httpListener);
+            connectionSemaphore.WaitOne(); // Wait for an available connection slot
+            await StartConnectionListener(httpListener); // Start handling the connection
         }
     }
 
+    /// <summary>
+    /// Starts handling a single incoming connection.
+    /// </summary>
+    /// <param name="httpListener"></param>
     private static async Task StartConnectionListener(HttpListener httpListener)
     {
         try
