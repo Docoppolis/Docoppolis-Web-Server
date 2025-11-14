@@ -34,7 +34,7 @@ The server is designed to serve static web pages and support lightweight dynamic
 
 ## 🧩 Project Structure
 
-The source code now lives under a `src/` directory with responsibilities split by concern:
+The source code lives under a `src/` directory with responsibilities split by concern:
 
 ```
 Docoppolis-Web-Server/
@@ -136,6 +136,42 @@ While this project began as an exercise inspired by the CodeProject tutorial, th
 - Uses **ResponsePacket abstraction** instead of raw string responses.  
 
 This makes the project a more maintainable, educational reference for how modern frameworks handle these concepts under the hood.
+
+---
+
+## 🔮 Future Plans & Roadmap
+
+Although this project began as a personal learning exercise, the long-term vision is to gradually evolve it into a **small but realistic backend framework**, suitable both for educational use and for demonstrating framework-engineering skills.
+
+While the server is currently a lightweight educational project, there are several ambitious enhancements planned to evolve it into a more capable and framework-like system:
+
+### **1. Move Toward a Modular, Framework-Like Architecture**
+- Restructure the routing system so developers can define routes in separate files (controllers/endpoints), rather than manually in `Program.cs`.
+- Introduce conventions or lightweight annotations to make route discovery automatic.
+
+### **2. Improve the Request Pipeline (Early Middleware System)**
+- Build a simple middleware engine that lets developers register components such as logging, authentication gates, static caching layers, or rate-limiting.
+- Mirrors how mature frameworks (ASP.NET Core, Express, FastAPI) structure their request workflow.
+
+### **3. Enhance Static File Serving**
+- Add better caching controls, MIME resolution, and optional compression.
+- Explore bundling resources behind a cleaner abstraction.
+
+### **4. Hosting Layer Improvements**
+- While `HttpListener` is fine for learning, it is not production-grade.
+- Future versions may allow swapping in a more robust engine (e.g., Kestrel or a custom socket-based server) without changing routing code.
+- Reinforces the framework-engineer mindset: **the transport layer should be replaceable**.
+
+### **5. Developer Productivity & Tooling**
+- Improve logging and diagnostics.
+- Add clearer error reporting or a small development dashboard.
+- Consider a simple CLI for scaffolding routes or configuration.
+
+### **6. Maintain the Core Purpose**
+Despite improvements, the primary goal remains:
+- **A hands-on learning tool**
+- **A showcase of backend and framework-level architecture**
+- **A sandbox for experimenting with server internals**
 
 ---
 
