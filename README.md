@@ -34,43 +34,39 @@ The server is designed to serve static web pages and support lightweight dynamic
 
 ## 🧩 Project Structure
 
-Below is a simplified view of the repository layout (replicating the screenshot’s structure):
+The source code now lives under a `src/` directory with responsibilities split by concern:
 
 ```
 Docoppolis-Web-Server/
-│
-├── Program.cs                 # Entry point; registers routes and starts the server
-│
-├── HttpListener.cs            # Core server loop handling connections and responses
-├── Router.cs                  # Routing logic; handles dynamic and static routes
-├── ResponsePacket.cs          # Unified HTTP response wrapper
-├── SessionManager.cs          # Session handling via cookies
-│
-├── AuthContext.cs             # Stores user authentication context
-├── AuthDecision.cs            # Enum for allow/redirect/forbidden auth outcomes
-│
-├── RequestHelpers.cs          # Query/body parsing utilities
-├── StringExtensions.cs        # Path and string helpers
-├── Path.cs                    # Resolves file paths for the website root
-├── ServerError.cs             # Error type enumeration
-│
-├── Website/
-│   ├── Pages/
-│   │   ├── index.html
-│   │   ├── login.html
-│   │   ├── dashboard.html
-│   │   └── admin.html
-│   │
-│   ├── Scripts/
-│   │   └── *.js
-│   ├── CSS/
-│   │   └── *.css
-│   ├── Images/
-│   │   └── *.png / *.ico
-│   └── ErrorPages/
-│       └── *.html
-│
-└── Screenshot_1.png (file structure reference)
+├── src/
+│   ├── Application/
+│   │   └── Program.cs                 # Entry point; configures and starts the server
+│   ├── Configuration/
+│   │   ├── ConfigLoader.cs            # Reads JSON configuration from disk
+│   │   └── ServerConfig.cs            # Strongly typed configuration model
+│   ├── Errors/
+│   │   └── ServerError.cs             # Enumerates server-specific error types
+│   ├── Hosting/
+│   │   └── Server.cs                  # HttpListener hosting, connection management, post-processing
+│   ├── Routing/
+│   │   ├── Router.cs                  # Dispatches requests to handlers or static content
+│   │   ├── Route.cs                   # Route metadata container
+│   │   ├── ResponsePacket.cs          # HTTP response abstraction used across handlers
+│   │   └── Handlers/
+│   │       └── RouteHandler.cs        # Anonymous / authenticated route handler types
+│   ├── Security/
+│   │   ├── AuthContext.cs             # Authentication context placeholder
+│   │   └── AuthDecision.cs            # Authorization decision outcomes
+│   ├── Sessions/
+│   │   ├── Session.cs                 # Session data tracked per user
+│   │   └── SessionManager.cs          # Cookie-backed session lifecycle management
+│   └── Utilities/
+│       ├── Paths.cs                   # Resolves paths to website assets
+│       ├── RequestHelpers.cs          # Parses query string and form payloads
+│       └── StringExtensions.cs        # Shared string/path helpers
+├── Website/                           # Static site content served by the host
+├── config.json                        # Default configuration values
+└── Web_Server.csproj                  # .NET project file
 ```
 
 ---
@@ -78,7 +74,7 @@ Docoppolis-Web-Server/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- .NET 6 or later  
+- .NET 8 SDK or later
 - A terminal or IDE such as Visual Studio / VS Code  
 
 ### Running the Server
@@ -107,12 +103,12 @@ admin / admin
 ## 🧠 Technical Overview
 
 ### Server Flow
-1. **`Program.cs`** registers routes and starts the listener.  
-2. **`HttpListener.cs`** accepts incoming requests, resolves sessions, and dispatches them to the **`Router`**.  
-3. **`Router.cs`** decides whether to return static content (HTML/CSS/JS/images) or invoke a route handler.  
-4. **`SessionManager.cs`** handles session creation and lookup through cookies.  
-5. **`ResponsePacket.cs`** standardizes the outgoing response for all handlers.  
-6. **CSRF protection** is handled automatically in `PostProcess()`, injecting hidden tokens into HTML forms.
+1. **`src/Application/Program.cs`** loads configuration, registers routes, and starts the host.
+2. **`src/Hosting/Server.cs`** accepts incoming requests, coordinates session resolution, and dispatches them to the router.
+3. **`src/Routing/Router.cs`** decides whether to return static content (HTML/CSS/JS/images) or invoke a route handler.
+4. **`src/Sessions/SessionManager.cs`** handles session creation and lookup through cookies.
+5. **`src/Routing/ResponsePacket.cs`** standardizes the outgoing response for all handlers.
+6. **CSRF protection** is handled automatically in `Server.PostProcess()`, injecting hidden tokens into HTML forms.
 
 ---
 
